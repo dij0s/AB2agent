@@ -9,8 +9,8 @@ LOCAL_AGENT_PATH="./agent"
 # Remote path where to copy the agent folder
 REMOTE_PATH="/home/raspi/app"
 
-# Copy everything into the remote server
-scp -r ./* ${USER}@${HOST}:${REMOTE_PATH}
+# Copy changes into the remote server
+rsync -av --progress ${LOCAL_AGENT_PATH} ${USER}@${HOST}:${REMOTE_PATH}
 
 # Then connect and restart docker compose
 echo "Starting the stack in attached mode..."
