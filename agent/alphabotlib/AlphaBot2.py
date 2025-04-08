@@ -17,6 +17,7 @@ class AlphaBot2(object):
         self.PIC_HEIGHT = 480
 
         self.turn_speed_mapping = {15: 13e-3}
+        self.forward_speed_mapping = {75: 1.0}
 
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
@@ -56,7 +57,7 @@ class AlphaBot2(object):
         self.PWMA.ChangeDutyCycle(speed)
         self.PWMB.ChangeDutyCycle(speed)
 
-        duration = self.turn_speed_mapping[speed] * angle
+        duration = self.turn_speed_mapping[speed] * abs(angle)
 
         if angle > 0:
             GPIO.output(self.AIN1, GPIO.LOW)
@@ -75,13 +76,15 @@ class AlphaBot2(object):
 
         pass
 
-    def safeForward(self, duration=0.5):
+    def safeForward(self, tiles=1, speed=75):
         self.PWMA.ChangeDutyCycle(self.PA)
         self.PWMB.ChangeDutyCycle(self.PB)
         GPIO.output(self.AIN1, GPIO.LOW)
         GPIO.output(self.AIN2, GPIO.HIGH)
         GPIO.output(self.BIN1, GPIO.LOW)
         GPIO.output(self.BIN2, GPIO.HIGH)
+
+        duration = self.forward_speed_mapping[speed] * tiles
 
         def run_for_time(duration):
             start_time = time.time()

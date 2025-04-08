@@ -42,15 +42,26 @@ class AlphaBotAgent(Agent):
         
         async def process_command(self, command):
             command = command.strip().lower()
-            
+            command = command.strip().lower()
+            args = command.split()[1:]
+            command = command.split()[0]
+
             if command == "forward":
                 logger.info("[Behavior] Moving forward...")
                 self.ab.forward()
                 await asyncio.sleep(2)
                 self.ab.stop()
 
+            elif command == "forwardsafe":
+                distance = args[0]
+                distance = float(distance)
+                logger.info(f"[Behavior] Moving forward safely for {distance} tiles")
+                self.ab.safeForward(tiles=distance)
+
             elif command == "turn":
-                _, angle, speed = command.split()
+                angle, speed = args
+                angle = float(angle)
+                speed = float(speed)
                 logger.info("[Behavior] Turning...")
                 self.ab.turn(angle=angle, speed=speed)
 
