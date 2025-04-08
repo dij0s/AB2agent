@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   agent:
     build: .
@@ -13,10 +11,10 @@ services:
       XMPP_SERVER: "prosody"
       XMPP_PORT: 5222
       XMPP_DOMAIN: "prosody"
-      XMPP_USERNAME: "alpha-pi-zero-agent"
+      XMPP_USERNAME: "alpha-pi-4b-agent"
       XMPP_PASSWORD: "top_secret"
       PYTHONUNBUFFERED: 1
     volumes:
       - ./agent:/agent
     extra_hosts:
-      - "prosody:192.168.88.253"
+      - "prosody:192.168.237.111"
