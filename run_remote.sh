@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # SSH connection details
-HOST="192.168.237.52"
+HOST="192.168.237.51"
 USER="raspi"
 
 # Local agent folder path
@@ -10,7 +10,7 @@ LOCAL_AGENT_PATH="./agent"
 REMOTE_PATH="/home/raspi/app"
 
 # Copy changes into the remote server
-rsync -av --progress ${LOCAL_AGENT_PATH} ${USER}@${HOST}:${REMOTE_PATH}
+rsync -av --progress ./* ${USER}@${HOST}:${REMOTE_PATH}
 
 # Then connect and restart docker compose
 echo "Starting the stack in attached mode..."
