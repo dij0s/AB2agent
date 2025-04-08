@@ -48,25 +48,30 @@ class AlphaBotAgent(Agent):
                 self.ab.forward()
                 await asyncio.sleep(2)
                 self.ab.stop()
-                
+
+            elif command == "turn":
+                _, angle, speed = command.split()
+                logger.info("[Behavior] Turning...")
+                self.ab.turn(angle=angle, speed=speed)
+
             elif command == "backward":
                 logger.info("[Behavior] Moving backward...")
                 self.ab.backward()
                 await asyncio.sleep(2)
                 self.ab.stop()
-                
+
             elif command == "left":
                 logger.info("[Behavior] Turning left...")
                 self.ab.left()
                 await asyncio.sleep(2)
                 self.ab.stop()
-                
+
             elif command == "right":
                 logger.info("[Behavior] Turning right...")
                 self.ab.right()
                 await asyncio.sleep(2)
                 self.ab.stop()
-                
+
             elif command.startswith("motor "):
                 try:
                     _, left, right = command.split()
