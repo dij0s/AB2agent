@@ -1,121 +1,43 @@
-# Hardware Setup
-⚠️ https://www.waveshare.com/wiki/AlphaBot2-Pi#Hardware_setup ⚠️
+# AB2 Agent
 
-# AlphaPi Zero Agent
+This repository contains the AB2 agent service that needs to be deployed on a Raspberry Pi.
+It listens for incoming XMPP messages and processes them accordingly.
 
-A SPADE-based XMPP agent for controlling an AlphaBot2 robot using the Raspberry Pi Zero.
+## Prerequisites
 
-## Overview
+1. SSH access to your Raspberry Pi configured with certificate authentication
+2. Docker and Docker Compose installed on the Raspberry Pi
+3. rsync installed on your local machine
 
-This project implements a SPADE (Smart Python Agent Development Environment) agent that controls an AlphaBot2 robot. The agent uses XMPP (Extensible Messaging and Presence Protocol) for communication, allowing remote control of the robot through messaging.
+## SSH Configuration
 
-## Features
+1. Make sure you have your SSH key pair ready
+2. Configure your SSH by adding these lines to your `~/.ssh/config`:
+```
+Host 192.168.237.*
+   HostName %h
+   PreferredAuthentications publickey
+   User raspi
+   IdentityFile ~/.ssh/keys/your-public-key
+```
 
-- Remote control of AlphaBot2 robot via XMPP messages
-- Movement commands: forward, backward, left, right, stop
-- Direct motor control with specified speed values
-- Containerized deployment with Docker
+## Deployment
 
-## Requirements
+1. Clone this repository:
+```bash
+git clone <repository-url>
+cd AB2agent
+```
 
-### Hardware
-- Raspberry Pi Zero (or compatible)
-- AlphaBot2 robot kit
-- GPIO access
+2. Adjust the `HOST` variable in `run_remote.sh` if your Raspberry Pi has a different IP address
 
-### Software
-- Python 3.9+
-- SPADE 3.3.3
-- RPi.GPIO
-- spidev
-- rpi_ws281x
+3. Run the deployment script:
+```bash
+./run_remote.sh
+```
 
-## Installation
-
-### Using Docker (Recommended)
-
-0. Install Docker:
-   ```
-   curl -sSL https://get.docker.com | sh
-   sudo usermod -aG docker $USER
-   restart terminal
-   ```
-   
-2. Clone this repository:
-   ```
-   git clone <repository-url>
-   cd AlphaPiZeroAgent
-   ```
-
-3. Configure the XMPP settings in `docker-compose.yml`: (Leave as it is unless configured)
-   ```yaml
-   environment:
-     XMPP_SERVER: "prosody"
-     XMPP_PORT: 5222
-     XMPP_DOMAIN: "prosody"
-     XMPP_USERNAME: "alpha-pi-zero-agent"
-     XMPP_PASSWORD: "top_secret"
-   ```
-
-4. Build and run with Docker Compose:
-   ```
-   docker-compose up -d
-   ```
-
-### Manual Installation
-
-1. Install the required dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
-
-2. Set the required environment variables:
-   ```
-   export XMPP_SERVER="prosody"
-   export XMPP_PORT=5222
-   export XMPP_DOMAIN="prosody"
-   export XMPP_USERNAME="alpha-pi-zero-agent"
-   export XMPP_PASSWORD="top_secret"
-   ```
-
-3. Run the agent:
-   ```
-   python -m agent
-   ```
-
-## Usage
-
-Send XMPP messages to the agent with the following commands:
-
-- `forward` - Move the robot forward for 2 seconds
-- `backward` - Move the robot backward for 2 seconds
-- `left` - Turn the robot left for 2 seconds
-- `right` - Turn the robot right for 2 seconds
-- `stop` - Stop all motors
-- `motor <left_speed> <right_speed>` - Set specific motor speeds (range: -100 to 100)
-
-## Project Structure
-
-- `agent/__main__.py` - Main agent implementation
-- `agent/alphabotlib/` - Library for controlling the AlphaBot2 hardware
-  - `AlphaBot2.py` - Core motor control functions
-  - Additional sensor and control modules
-
-## Configuration
-
-The agent uses environment variables for configuration:
-
-- `XMPP_SERVER` - XMPP server hostname
-- `XMPP_PORT` - XMPP server port (default: 5222)
-- `XMPP_DOMAIN` - XMPP domain
-- `XMPP_USERNAME` - XMPP username for the agent
-- `XMPP_PASSWORD` - XMPP password for the agent
-
-## License
-
-[Add your license information here]
-
-## Acknowledgments
-
-- This project uses the [SPADE](https://github.com/javipalanca/spade) framework for agent development
-- AlphaBot2 is a product of Waveshare 
+This will:
+- Sync any changed files to the Raspberry Pi using rsync
+- Start the Docker Compose stack in attached mode
+- Show the logs in your terminal
+- Allow you to stop the stack with CTRL+C
