@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # SSH connection details
-HOST="192.168.88.251"
+HOST="192.168.237.51"
 USER="raspi"
 
 # Local agent folder path
