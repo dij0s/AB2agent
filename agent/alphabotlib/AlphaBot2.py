@@ -103,7 +103,26 @@ class AlphaBot2(object):
                 DR_status = GPIO.input(self.DR)
                 DL_status = GPIO.input(self.DL)
                 if (DL_status == 0) and (DR_status == 0):
-                    break
+                    GPIO.output(self.AIN1, GPIO.HIGH)
+                    GPIO.output(self.AIN2, GPIO.LOW)
+                    GPIO.output(self.BIN1, GPIO.HIGH)
+                    GPIO.output(self.BIN2, GPIO.LOW)
+                elif DL_status == 0:
+                    GPIO.output(self.AIN1, GPIO.HIGH)
+                    GPIO.output(self.AIN2, GPIO.LOW)
+                    GPIO.output(self.BIN1, GPIO.LOW)
+                    GPIO.output(self.BIN2, GPIO.HIGH)
+                elif DR_status == 0:
+                    GPIO.output(self.AIN1, GPIO.LOW)
+                    GPIO.output(self.AIN2, GPIO.HIGH)
+                    GPIO.output(self.BIN1, GPIO.HIGH)
+                    GPIO.output(self.BIN2, GPIO.LOW)
+                else:
+                    GPIO.output(self.AIN1, GPIO.LOW)
+                    GPIO.output(self.AIN2, GPIO.HIGH)
+                    GPIO.output(self.BIN1, GPIO.LOW)
+                    GPIO.output(self.BIN2, GPIO.HIGH)
+                
             self.stop()
 
         thread = threading.Thread(target=run_for_time, args=(duration,))
