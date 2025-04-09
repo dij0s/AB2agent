@@ -19,8 +19,8 @@ class AlphaBot2(object):
         self.DR = 16
         self.DL = 19
 
-        self.turn_speed_mapping = {8: 4.3e-3}
-        self.forward_speed_mapping = {20: 0.5}
+        self.turn_speed = 4.3e-3
+        self.forward_speed = 0.5
 
         self.motor_startup_turn = 10e-4
         self.motor_startup_forward = 5e-4
@@ -65,7 +65,7 @@ class AlphaBot2(object):
         self.PWMA.ChangeDutyCycle(speed)
         self.PWMB.ChangeDutyCycle(speed)
 
-        duration = self.turn_speed_mapping[speed] * abs(angle)
+        duration = self.turn_speed * abs(angle)
         duration += self.motor_startup_turn
 
         if angle > 0:
@@ -86,7 +86,7 @@ class AlphaBot2(object):
         pass
 
     def safeForward(self, tiles=1, speed=20):
-        duration = self.forward_speed_mapping[speed] * tiles
+        duration = self.forward_speed * tiles
         duration += self.motor_startup_forward
 
         self.PWMA.ChangeDutyCycle(speed)
