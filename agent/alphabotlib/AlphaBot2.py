@@ -16,8 +16,14 @@ class AlphaBot2(object):
         self.PIC_WIDTH = 640
         self.PIC_HEIGHT = 480
 
-        self.turn_speed_mapping = {15: 13e-3}
-        self.forward_speed_mapping = {75: 1.0}
+        self.DR = 16
+        self.DL = 19
+
+        self.turn_speed_mapping = {8: 4.3e-3}
+        self.forward_speed_mapping = {20: 0.5}
+
+        self.motor_startup_turn = 10e-4
+        self.motor_startup_forward = 5e-4
 
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
@@ -27,6 +33,8 @@ class AlphaBot2(object):
         GPIO.setup(self.BIN2, GPIO.OUT)
         GPIO.setup(self.ENA, GPIO.OUT)
         GPIO.setup(self.ENB, GPIO.OUT)
+        GPIO.setup(self.DR, GPIO.IN, GPIO.PUD_UP)
+        GPIO.setup(self.DL, GPIO.IN, GPIO.PUD_UP)
         self.PWMA = GPIO.PWM(self.ENA, 500)
         self.PWMB = GPIO.PWM(self.ENB, 500)
         self.PWMA.start(self.PA)
@@ -53,11 +61,12 @@ class AlphaBot2(object):
             return frame.reshape((self.PIC_HEIGHT, self.PIC_WIDTH, 3))
         raise Exception("Failed to capture image")
 
-    def turn(self, angle=90, speed=10):
+    def turn(self, angle=90, speed=8):
         self.PWMA.ChangeDutyCycle(speed)
         self.PWMB.ChangeDutyCycle(speed)
 
         duration = self.turn_speed_mapping[speed] * abs(angle)
+        duration += self.motor_startup_turn
 
         if angle > 0:
             GPIO.output(self.AIN1, GPIO.LOW)
@@ -76,15 +85,17 @@ class AlphaBot2(object):
 
         pass
 
-    def safeForward(self, tiles=1, speed=75):
-        self.PWMA.ChangeDutyCycle(self.PA)
-        self.PWMB.ChangeDutyCycle(self.PB)
+    def safeForward(self, tiles=1, speed=20):
+        duration = self.forward_speed_mapping[speed] * tiles
+        duration += self.motor_startup_forward
+
+        self.PWMA.ChangeDutyCycle(speed)
+        self.PWMB.ChangeDutyCycle(speed)
         GPIO.output(self.AIN1, GPIO.LOW)
         GPIO.output(self.AIN2, GPIO.HIGH)
         GPIO.output(self.BIN1, GPIO.LOW)
         GPIO.output(self.BIN2, GPIO.HIGH)
 
-        duration = self.forward_speed_mapping[speed] * tiles
 
         def run_for_time(duration):
             start_time = time.time()
