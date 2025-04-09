@@ -102,7 +102,7 @@ class AlphaBot2(object):
             while time.time() - start_time < duration:
                 DR_status = GPIO.input(self.DR)
                 DL_status = GPIO.input(self.DL)
-                if (DL_status == 0) or (DR_status == 0):
+                if (DL_status == 0) and (DR_status == 0):
                     break
             self.stop()
 
