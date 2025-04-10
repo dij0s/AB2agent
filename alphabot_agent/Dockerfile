@@ -5,4 +5,4 @@ RUN apt install -y ttf-wqy-zenhei python3-pip python3-smbus python3-serial libgl
 
 RUN pip install --no-cache-dir RPi.GPIO spidev rpi_ws281x spade==3.3.3 opencv-python
 
-CMD ["python", "-m", "agent"]
+CMD ["python", "-m", "alphabot_agent"]

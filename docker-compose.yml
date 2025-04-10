@@ -1,7 +1,7 @@
 services:
-  agent:
-    build: .
-    container_name: agent
+  alphabot_agent:
+    build: ./alphabot_agent/
+    container_name: alphabot_agent
     devices:
       - /dev/gpiomem:/dev/gpiomem
     privileged: true
@@ -15,6 +15,21 @@ services:
       XMPP_PASSWORD: "top_secret"
       PYTHONUNBUFFERED: 1
     volumes:
-      - ./agent:/agent
+      - ./alphabot_agent:/alphabot_agent
     extra_hosts:
-      - "prosody:192.168.88.250"
+      - "prosody:${PROSODY_IP}"
+  calibration_agent:
+    build: ./calibration_agent/
+    container_name: calibration_agent
+    environment:
+      XMPP_SERVER: "prosody"
+      XMPP_PORT: 5222
+      XMPP_DOMAIN: "prosody"
+      XMPP_USERNAME: "calibration_agent"
+      XMPP_PASSWORD: "top_secret"
+      PYTHONUNBUFFERED: 1
+    volumes:
+      - ./calibration_agent:/app/src
+    privileged: true
+    extra_hosts:
+      - "prosody:${PROSODY_IP}"

@@ -1,7 +1,7 @@
 from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour, PeriodicBehaviour
 from spade.message import Message
-from agent.alphabotlib.AlphaBot2 import AlphaBot2
+from alphabot_agent.alphabotlib.AlphaBot2 import AlphaBot2
 import asyncio
 import os
 import time
@@ -138,7 +138,7 @@ async def main():
         try:
             while agent.is_alive():
                 logger.debug("Agent is alive and running...")
-                await asyncio.sleep(10)  # Log every 10 seconds that agent is alive
+                await asyncio.sleep(100)  # Log every 10 seconds that agent is alive
         except KeyboardInterrupt:
             logger.info("Keyboard interrupt received")
             await agent.stop()
