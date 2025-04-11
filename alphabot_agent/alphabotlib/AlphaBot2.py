@@ -2,6 +2,9 @@ import threading
 import RPi.GPIO as GPIO
 import time
 import cv2
+from alphabot_agent.alphabotlib.TRSensors import TRSensor
+import numpy as np
+from functools import reduce
 
 class AlphaBot2(object):
     def __init__(self, ain1=12, ain2=13, ena=6, bin1=20, bin2=21, enb=26):
@@ -15,6 +18,8 @@ class AlphaBot2(object):
         self.PB = 50
         self.PIC_WIDTH = 640
         self.PIC_HEIGHT = 480
+        self.CTR = 7
+        self.BUZ = 4
 
         self.DR = 16
         self.DL = 19
@@ -25,8 +30,18 @@ class AlphaBot2(object):
         self.motor_startup_turn = 10e-4
         self.motor_startup_forward = 5e-4
 
+        self.forwardEquation = lambda x: 2.648777 * x + 137.4677
+
+        self.TR = TRSensor()
+
+        # TODO: Remove this when in prod !
+        self.TR.calibratedMin = [306, 323, 293, 321, 278]
+        self.TR.calibratedMax = [960, 961, 937, 962, 959]
+
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
+        GPIO.setup(self.BUZ, GPIO.OUT)
+        GPIO.setup(self.CTR, GPIO.OUT)
         GPIO.setup(self.AIN1, GPIO.OUT)
         GPIO.setup(self.AIN2, GPIO.OUT)
         GPIO.setup(self.BIN1, GPIO.OUT)
@@ -61,6 +76,123 @@ class AlphaBot2(object):
             return frame.reshape((self.PIC_HEIGHT, self.PIC_WIDTH, 3))
         raise Exception("Failed to capture image")
 
+    def beep_on(self):
+        GPIO.output(self.BUZ, GPIO.HIGH)
+
+    def beep_off(self):
+        GPIO.output(self.BUZ, GPIO.LOW)
+
+    def calibrateTRSensors(self):
+        self.left(15)
+        time.sleep(0.5)
+        self.TR.calibrate()
+        self.stop()
+        print("Calibrated, values:")
+        print("Min: ", self.TR.calibratedMin)
+        print("Max: ", self.TR.calibratedMax)
+
+    def calibrateForward(self, speed=30):
+        lineTreshold = 100
+        whiteTreshold = 900
+
+        papers = [[30, 40, 70, 120], [100, 150]]
+
+        measurements = []
+
+        preciseSpeed = 7
+
+        def runUntilLine(timeout=1500):
+            armed = False
+            counter = 0
+            while True:
+                if counter >= timeout:
+                    self.stop()
+                    raise Exception(
+                        "Line not detected until timeout ! Calibration failed..."
+                    )
+                counter += 1
+                res = self.TR.readCalibrated()
+                if res[3] < lineTreshold and (
+                    res[4] < lineTreshold or res[2] < lineTreshold
+                ):
+                    if armed:
+                        break
+                if res[3] > whiteTreshold and (
+                    res[4] > whiteTreshold or res[2] > whiteTreshold
+                ):
+                    armed = True
+            pass
+
+        def measureTimeToNextLine():
+            self.PA = speed
+            self.PB = speed
+            self.forward()
+            start = time.time()
+            runUntilLine()
+            stop = time.time()
+            self.stop()
+            return stop - start
+
+        def goToStartLine():
+            self.PA = preciseSpeed
+            self.PB = preciseSpeed
+            self.forward()
+            runUntilLine()
+            self.stop()
+
+        def goBackToLine():
+            self.PA = preciseSpeed
+            self.PB = preciseSpeed
+            self.backward()
+            runUntilLine()
+            self.stop()
+
+        def waitForJoystickCenter():
+            flag = False
+            while True:
+                if GPIO.input(self.CTR) == 0:
+                    self.beep_on()
+                    flag = True
+                if flag and GPIO.input(self.CTR) == 1:
+                    self.beep_off()
+                    break
+
+        def flatten(li):
+            return reduce(
+                lambda x, y: [*x, y] if not isinstance(y, list) else x + flatten(y),
+                li,
+                [],
+            )
+
+        for p in papers:
+            print("Waiting for joystick press to start the forward calibration")
+            waitForJoystickCenter()
+            time.sleep(0.5)
+            goToStartLine()
+            print("At start line. starting !")
+            time.sleep(0.5)
+            for d in p:
+                timeTaken = measureTimeToNextLine()
+                print("Measurement taken !")
+                measurements.append(timeTaken * 1000)
+                time.sleep(0.5)
+                goBackToLine()
+                time.sleep(0.5)
+        flattened = flatten(papers)
+
+        a, b = np.polyfit(flattened, measurements, 1)
+
+        print("A is : ", a)
+        print("B is : ", b)
+
+        error = 0
+        for x, y in zip(flattened, measurements):
+            error += abs(a * x + b - y)
+        error /= len(flattened)
+        print("Error is : ", error)
+
+        self.forwardEquation = lambda x: a * x + b
+
     def turn(self, angle=90, speed=8):
         self.PWMA.ChangeDutyCycle(speed)
         self.PWMB.ChangeDutyCycle(speed)
@@ -85,9 +217,13 @@ class AlphaBot2(object):
 
         pass
 
-    def safeForward(self, tiles=1, speed=20):
-        duration = self.forward_speed * tiles
-        duration += self.motor_startup_forward
+    def safeForward(self, mm=1, speed=30):
+        if self.forwardEquation:
+            duration = self.forwardEquation(mm) / 1000
+            print("Duration is : ", duration)
+        else:
+            duration = self.forward_speed * mm * 150
+            duration += self.motor_startup_forward
 
         self.PWMA.ChangeDutyCycle(speed)
         self.PWMB.ChangeDutyCycle(speed)
@@ -133,17 +269,17 @@ class AlphaBot2(object):
         GPIO.output(self.BIN1, GPIO.HIGH)
         GPIO.output(self.BIN2, GPIO.LOW)
 
-    def left(self):
-        self.PWMA.ChangeDutyCycle(30)
-        self.PWMB.ChangeDutyCycle(30)
+    def left(self, speed=30):
+        self.PWMA.ChangeDutyCycle(speed)
+        self.PWMB.ChangeDutyCycle(speed)
         GPIO.output(self.AIN1, GPIO.HIGH)
         GPIO.output(self.AIN2, GPIO.LOW)
         GPIO.output(self.BIN1, GPIO.LOW)
         GPIO.output(self.BIN2, GPIO.HIGH)
 
-    def right(self):
-        self.PWMA.ChangeDutyCycle(30)
-        self.PWMB.ChangeDutyCycle(30)
+    def right(self, speed=30):
+        self.PWMA.ChangeDutyCycle(speed)
+        self.PWMB.ChangeDutyCycle(speed)
         GPIO.output(self.AIN1, GPIO.LOW)
         GPIO.output(self.AIN2, GPIO.HIGH)
         GPIO.output(self.BIN1, GPIO.HIGH)

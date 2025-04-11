@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # SSH connection details
-HOST="192.168.237.51"
+HOST="192.168.237.52"
 USER="raspi"
 
 # IP address of the Prosody server
@@ -18,6 +18,6 @@ rsync -av --progress ./* ${USER}@${HOST}:${REMOTE_PATH}
 
 # Then connect and restart docker compose
 echo "Starting the stack in attached mode..."
-ssh -t ${USER}@${HOST} "export PROSODY_IP=${PROSODY_IP};cd /home/raspi/app && docker compose down && docker compose up"
+ssh -t ${USER}@${HOST} "export PROSODY_IP=${PROSODY_IP};cd /home/raspi/app && docker compose down && docker compose up alphabot_agent"
 
 echo "Docker-compose stopped.."
