@@ -2,6 +2,7 @@ import threading
 import RPi.GPIO as GPIO
 import time
 import cv2
+from TRSensors import TRSensor
 
 class AlphaBot2(object):
     def __init__(self, ain1=12, ain2=13, ena=6, bin1=20, bin2=21, enb=26):
@@ -19,6 +20,9 @@ class AlphaBot2(object):
         self.DR = 16
         self.DL = 19
 
+        self.JOY = 7
+        self.BUZ = 4
+
         self.turn_speed = 4.3e-3
         self.forward_speed = 0.5
 
@@ -33,6 +37,8 @@ class AlphaBot2(object):
         GPIO.setup(self.BIN2, GPIO.OUT)
         GPIO.setup(self.ENA, GPIO.OUT)
         GPIO.setup(self.ENB, GPIO.OUT)
+        GPIO.setup(self.BUZ,GPIO.OUT)
+        GPIO.setup(self.JOY,GPIO.IN,GPIO.PUD_UP)
         GPIO.setup(self.DR, GPIO.IN, GPIO.PUD_UP)
         GPIO.setup(self.DL, GPIO.IN, GPIO.PUD_UP)
         self.PWMA = GPIO.PWM(self.ENA, 500)
@@ -103,10 +109,8 @@ class AlphaBot2(object):
                 DR_status = GPIO.input(self.DR)
                 DL_status = GPIO.input(self.DL)
                 if (DL_status == 0) and (DR_status == 0):
-                    GPIO.output(self.AIN1, GPIO.HIGH)
-                    GPIO.output(self.AIN2, GPIO.LOW)
-                    GPIO.output(self.BIN1, GPIO.HIGH)
-                    GPIO.output(self.BIN2, GPIO.LOW)
+                    self.stop()
+                    print("we are facing the wall...")
                 elif DL_status == 0:
                     GPIO.output(self.AIN1, GPIO.HIGH)
                     GPIO.output(self.AIN2, GPIO.LOW)
@@ -152,17 +156,17 @@ class AlphaBot2(object):
         GPIO.output(self.BIN1, GPIO.HIGH)
         GPIO.output(self.BIN2, GPIO.LOW)
 
-    def left(self):
-        self.PWMA.ChangeDutyCycle(30)
-        self.PWMB.ChangeDutyCycle(30)
+    def left(self, speed = 30):
+        self.PWMA.ChangeDutyCycle(speed)
+        self.PWMB.ChangeDutyCycle(speed)
         GPIO.output(self.AIN1, GPIO.HIGH)
         GPIO.output(self.AIN2, GPIO.LOW)
         GPIO.output(self.BIN1, GPIO.LOW)
         GPIO.output(self.BIN2, GPIO.HIGH)
 
-    def right(self):
-        self.PWMA.ChangeDutyCycle(30)
-        self.PWMB.ChangeDutyCycle(30)
+    def right(self, speed = 30):
+        self.PWMA.ChangeDutyCycle(speed)
+        self.PWMB.ChangeDutyCycle(speed)
         GPIO.output(self.AIN1, GPIO.LOW)
         GPIO.output(self.AIN2, GPIO.HIGH)
         GPIO.output(self.BIN1, GPIO.HIGH)
@@ -193,10 +197,118 @@ class AlphaBot2(object):
             GPIO.output(self.BIN1, GPIO.LOW)
             GPIO.output(self.BIN2, GPIO.HIGH)
             self.PWMB.ChangeDutyCycle(0 - left)
+    
+    def beep_on(self):
+        GPIO.output(self.BUZ,GPIO.HIGH)
+    def beep_off(self):
+        GPIO.output(self.BUZ,GPIO.LOW)
+
+    def get_rotated_idiot(self):
+        t = 3
+        try:
+            while GPIO.input(self.JOY) == 1:
+                pass
+
+            self.beep_on()
+
+            while GPIO.input(self.JOY) == 0:
+                pass
+            
+            self.beep_off()
+            time.sleep(0.5)
+
+            while True:
+                self.left()
+                time.sleep(t)
+                self.stop()
+                while GPIO.input(self.JOY) == 1:
+                    pass
+
+                self.beep_on()
+
+                while GPIO.input(self.JOY) == 0:
+                    pass
+                
+                self.beep_off()
+                print(t)
+                t += 0.1
+                time.sleep(0.5)
+
+        except KeyboardInterrupt:
+            pass   
+
+    def calibrate_rotate(self):
+        TR = TRSensor()
+        self.left()
+        time.sleep(1)
+        TR.calibrate()
+        self.stop()
+
+        print("Max : ", TR.calibratedMax)
+        print("Min : ", TR.calibratedMin)
+
+        time.sleep(2)
+        self.right(15)
+
+        sensor = TR.readCalibrated()
+        print(sensor[2])
+        while sensor[2] > 900:
+            sensor = TR.readCalibrated()
+        print("we are set")
+
+        self.stop()
+        
+        time.sleep(2)
+
+        t = time.time()
+        #self.right()
+        sensor = TR.readCalibrated()
+        print(sensor[2])
+        while sensor[2] < 100: # From bot wiki, black -> ~100-300, white -> ~800-900
+            print(sensor[2])
+            sensor = TR.readCalibrated()
+        print("out of black")
+        print(sensor[2])
+        time.sleep(0.05)
+        while sensor[2] > 900:
+            sensor = TR.readCalibrated()
+        print("back on black")
+        t1 = time.time() - t
+        #self.stop()
+        time.sleep(2)
+        
+        #self.left(15)
+        while sensor[2] > 900:
+            sensor = TR.readCalibrated()
+        #self.stop()
+        time.sleep(2)
+
+        t = time.time()
+        #self.right()
+        while sensor[2] < 100:
+            sensor = TR.readCalibrated()
+        print("out of black2")
+        while sensor[2] > 900:
+            sensor = TR.readCalibrated()
+        print("back on black2")
+        while sensor[2] < 100:
+            sensor = TR.readCalibrated()
+        print("out of black3")
+        while sensor[2] > 900:
+            sensor = TR.readCalibrated()
+        print("back on black3")
+        t2 = time.time() - t
+
+        print(f"t1: {t1}, t2: {t2}")
+
+
 
 if __name__ == "__main__":
     Ab = AlphaBot2()
-    Ab.forward()
+    Ab.calibrate_rotate()
+    # Ab.forward()
+    time.sleep(0.425)
+    Ab.stop()
     try:
         while True:
             time.sleep(1)

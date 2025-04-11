@@ -17,4 +17,4 @@ services:
     volumes:
       - ./agent:/agent
     extra_hosts:
-      - "prosody:192.168.237.60"
+      - "prosody:192.168.237.57"
