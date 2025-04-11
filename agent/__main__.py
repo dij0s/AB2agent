@@ -56,7 +56,7 @@ class AlphaBotAgent(Agent):
                 distance = args[0]
                 distance = float(distance)
                 logger.info(f"[Behavior] Moving forward safely for {distance} tiles")
-                self.ab.safeForward(tiles=distance, speed=20)
+                self.ab.safeForward(tiles=distance, speed=60)
 
             elif command == "turn":
                 angle, speed = args
