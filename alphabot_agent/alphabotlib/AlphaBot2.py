@@ -6,6 +6,15 @@ from alphabot_agent.alphabotlib.TRSensors import TRSensor
 import numpy as np
 from functools import reduce
 
+
+def flatten(li):
+    return reduce(
+        lambda x, y: [*x, y] if not isinstance(y, list) else x + flatten(y),
+        li,
+        [],
+    )
+
+
 class AlphaBot2(object):
     def __init__(self, ain1=12, ain2=13, ena=6, bin1=20, bin2=21, enb=26):
         self.AIN1 = ain1
@@ -31,6 +40,7 @@ class AlphaBot2(object):
         self.motor_startup_forward = 5e-4
 
         self.forwardEquation = lambda x: 2.648777 * x + 137.4677
+        self.turnEquation = lambda x: 4.91358 * x + 61.6586
 
         self.TR = TRSensor()
 
@@ -90,6 +100,100 @@ class AlphaBot2(object):
         print("Calibrated, values:")
         print("Min: ", self.TR.calibratedMin)
         print("Max: ", self.TR.calibratedMax)
+
+    def calibrateTurn(self, speed=15):
+        lineTreshold = 30
+        whiteTreshold = 970
+
+        angles = [90, 180, 270, 360, 450, 540]
+        measurements = []
+
+        preciseSpeed = 9
+
+        def runUntilLine(numerOfLine=1, timeout=5000):
+            armed = False
+            counter = 0
+            lineCounter = 0
+            while True:
+                if counter >= timeout:
+                    self.stop()
+                    print("Line not detected until timeout ! Calibration failed...")
+                    break
+                counter += 1
+                res = self.TR.readCalibrated()
+                if res[3] < lineTreshold and (
+                    res[2] > whiteTreshold and res[4] > whiteTreshold
+                ):
+                    if armed:
+                        lineCounter += 1
+                        armed = False
+                if res[3] > whiteTreshold:
+                    armed = True
+                if lineCounter >= numerOfLine:
+                    break
+
+        def measureTimeToNextLine(numberOfLine=1):
+            self.left(speed)
+            start = time.time()
+            runUntilLine(numberOfLine)
+            stop = time.time()
+            self.stop()
+            return stop - start
+
+        def turnToLine():
+            self.left(preciseSpeed)
+            runUntilLine()
+            self.stop()
+
+        def turnBackToLine():
+            self.right(preciseSpeed)
+            runUntilLine()
+            self.stop()
+
+        def waitForJoystickCenter():
+            flag = False
+            while True:
+                if GPIO.input(self.CTR) == 0:
+                    self.beep_on()
+                    flag = True
+                if flag and GPIO.input(self.CTR) == 1:
+                    self.beep_off()
+                    break
+
+        print("Waiting for joystick press to start the turn calibration")
+        waitForJoystickCenter()
+        time.sleep(0.5)
+
+        turnToLine()
+
+        time.sleep(1)
+
+        for a in angles:
+            nbrOfLine = a // 90
+
+            measurements.append(measureTimeToNextLine(nbrOfLine) * 1000)
+
+            time.sleep(0.5)
+            turnBackToLine()
+            print("Waiting for joystick for next turn")
+            waitForJoystickCenter()
+            time.sleep(0.5)
+
+        print("Times are : ")
+        print(measurements)
+
+        a, b = np.polyfit(angles, measurements, 1)
+
+        print("A is : ", a)
+        print("B is : ", b)
+
+        error = 0
+        for x, y in zip(angles, measurements):
+            error += abs(a * x + b - y)
+        error /= len(angles)
+        print("Error is : ", error)
+
+        self.turnEquation = lambda x: a * x + b
 
     def calibrateForward(self, speed=30):
         lineTreshold = 100
@@ -157,13 +261,6 @@ class AlphaBot2(object):
                     self.beep_off()
                     break
 
-        def flatten(li):
-            return reduce(
-                lambda x, y: [*x, y] if not isinstance(y, list) else x + flatten(y),
-                li,
-                [],
-            )
-
         for p in papers:
             print("Waiting for joystick press to start the forward calibration")
             waitForJoystickCenter()
@@ -193,12 +290,16 @@ class AlphaBot2(object):
 
         self.forwardEquation = lambda x: a * x + b
 
-    def turn(self, angle=90, speed=8):
+    def turn(self, angle=90, speed=30):
         self.PWMA.ChangeDutyCycle(speed)
         self.PWMB.ChangeDutyCycle(speed)
 
-        duration = self.turn_speed * abs(angle)
-        duration += self.motor_startup_turn
+        if self.turnEquation:
+            duration = self.turnEquation(abs(angle)) / 1000
+            print("Duration is : ", duration)
+        else:
+            duration = self.turn_speed * abs(angle)
+            duration += self.motor_startup_turn
 
         if angle > 0:
             GPIO.output(self.AIN1, GPIO.LOW)

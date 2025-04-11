@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # SSH connection details
-HOST="192.168.237.52"
+HOST="192.168.88.252"
 USER="raspi"
 
 # IP address of the Prosody server
-PROSODY_IP="192.168.237.57"
+PROSODY_IP="192.168.88.250"
 
 # Local agent folder path
 LOCAL_AGENT_PATH="./agent"

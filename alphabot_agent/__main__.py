@@ -77,6 +77,9 @@ class AlphaBotAgent(Agent):
                 self.ab.right()
                 await asyncio.sleep(2)
                 self.ab.stop()
+            elif command == "calibrate_turn":
+                logger.info("Calibrating turn...")
+                self.ab.calibrateTurn()
             elif command == "calibrate_sensors":
                 logger.info("[Behavior] Calibrating sensors...")
                 self.ab.calibrateTRSensors()
