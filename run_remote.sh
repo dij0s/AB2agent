@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # SSH connection details
-HOST="192.168.237.52"
+HOST="192.168.237.51"
 USER="raspi"
 
 # IP address of the Prosody server
