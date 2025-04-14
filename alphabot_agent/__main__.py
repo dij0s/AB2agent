@@ -1,33 +1,97 @@
-from spade.agent import Agent
-from spade.behaviour import CyclicBehaviour, PeriodicBehaviour
-from spade.message import Message
-from alphabot_agent.alphabotlib.AlphaBot2 import AlphaBot2
 import asyncio
-import os
-import time
 import logging
+import os
+from enum import Enum
+
+import aiohttp
+from spade.agent import Agent
+from spade.behaviour import CyclicBehaviour
+from spade.message import Message
+
+from alphabot_agent.alphabotlib.AlphaBot2 import AlphaBot2
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("AlphaBotAgent")
 
 # Enable SPADE and XMPP specific logging
 for log_name in ["spade", "aioxmpp", "xmpp"]:
     log = logging.getLogger(log_name)
-    log.setLevel(logging.DEBUG)
+    log.setLevel(logging.INFO)
     log.propagate = True
 
 
+class BotState(Enum):
+    IDLE = "idle"
+    EXECUTING = "executing"
+
+
 class AlphaBotAgent(Agent):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.api_url = "http://prosody:3000/api/messages"
+        self.api_token = os.environ.get("API_TOKEN", "your_secret_token")
+        self.session = None
+
+    @property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, new_state):
+        self._state = new_state
+        # Schedule state update in the event loop
+        if self.session:
+            asyncio.create_task(self.notify_state_change())
+
+    async def notify_state_change(self):
+        try:
+            state_update = {
+                "type": "state_update",
+                "state": self.state.value,
+                "timestamp": int(asyncio.get_event_loop().time()),
+            }
+
+            async with self.session.post(
+                self.api_url,
+                json=state_update,
+                headers={"Authorization": f"Bearer {self.api_token}"},
+            ) as response:
+                if response.status == 200:
+                    logger.info(f"State update sent: {self.state.value}")
+                else:
+                    logger.error(
+                        f"Failed to send state update. Status: {response.status}"
+                    )
+
+        except Exception as e:
+            logger.error(f"Failed to send state update: {e}")
+
+    async def setup(self):
+        # Create HTTP session
+        self.session = aiohttp.ClientSession()
+
+        # Add command listener behavior
+        command_behavior = self.XMPPCommandListener()
+        self.add_behaviour(command_behavior)
+
+        # Set initial state after setup
+        self.state = BotState.IDLE
+
     class XMPPCommandListener(CyclicBehaviour):
         async def on_start(self):
             self.ab = AlphaBot2()
+            self.agent.state = BotState.IDLE
 
         async def run(self):
             msg = await self.receive(timeout=100)
             if msg:
-                logger.info(f"[Behavior] Received command ({msg.sender}): {msg.body}")
+                logger.info(
+                    f"[Behavior] Received command ({msg.sender}): {msg.body}"
+                )
+                self.agent.state = BotState.EXECUTING
                 await self.process_command(msg.body)
+                self.agent.state = BotState.IDLE
 
                 # Send a confirmation response
                 reply = Message(to=str(msg.sender))
@@ -36,7 +100,6 @@ class AlphaBotAgent(Agent):
                 await self.send(reply)
 
         async def process_command(self, command):
-            command = command.strip().lower()
             command = command.strip().lower()
             args = command.split()[1:]
             command = command.split()[0]
@@ -50,7 +113,9 @@ class AlphaBotAgent(Agent):
             elif command == "forwardsafe":
                 distance = args[0]
                 distance = float(distance)
-                logger.info(f"[Behavior] Moving forward safely for {distance} tiles")
+                logger.info(
+                    f"[Behavior] Moving forward safely for {distance} tiles"
+                )
                 self.ab.safeForward(mm=distance)
 
             elif command == "turn":
@@ -107,13 +172,10 @@ class AlphaBotAgent(Agent):
             else:
                 logger.warning(f"[Behavior] Unknown command: {command}")
 
-    async def setup(self):
-        # Add command listener behavior
-        command_behavior = self.XMPPCommandListener()
-        self.add_behaviour(command_behavior)
-
-
-import asyncio
+    async def stop(self):
+        if self.session:
+            await self.session.close()
+        await super().stop()
 
 
 async def main():
@@ -127,15 +189,16 @@ async def main():
         )
 
         await agent.start(auto_register=True)
-        
+
         try:
             while agent.is_alive():
-                await asyncio.sleep(100)  # Log every 10 seconds that agent is alive
+                await asyncio.sleep(100)
         except KeyboardInterrupt:
             logger.info("Keyboard interrupt received")
             await agent.stop()
     except Exception as e:
         logger.error(f"Error starting agent: {str(e)}", exc_info=True)
+
 
 if __name__ == "__main__":
     try:

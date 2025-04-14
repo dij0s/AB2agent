@@ -1,7 +1,7 @@
 services:
-  alphabot_agent:
+  alphabot_agent_1:
     build: ./alphabot_agent/
-    container_name: alphabot_agent
+    container_name: alphabot_agent_1
     devices:
       - /dev/gpiomem:/dev/gpiomem
     privileged: true
@@ -11,7 +11,26 @@ services:
       XMPP_SERVER: "prosody"
       XMPP_PORT: 5222
       XMPP_DOMAIN: "prosody"
-      XMPP_USERNAME: "alpha-pi-4b-agent"
+      XMPP_USERNAME: "alpha-pi-4b-agent-1"
+      XMPP_PASSWORD: "top_secret"
+      PYTHONUNBUFFERED: 1
+    volumes:
+      - ./alphabot_agent:/alphabot_agent
+    extra_hosts:
+      - "prosody:${PROSODY_IP}"
+  alphabot_agent_2:
+    build: ./alphabot_agent/
+    container_name: alphabot_agent_2
+    devices:
+      - /dev/gpiomem:/dev/gpiomem
+    privileged: true
+    cap_add:
+      - SYS_RAWIO
+    environment:
+      XMPP_SERVER: "prosody"
+      XMPP_PORT: 5222
+      XMPP_DOMAIN: "prosody"
+      XMPP_USERNAME: "alpha-pi-4b-agent-2"
       XMPP_PASSWORD: "top_secret"
       PYTHONUNBUFFERED: 1
     volumes:
