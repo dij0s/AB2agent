@@ -14,11 +14,12 @@ if [ "$1" != "1" ] && [ "$1" != "2" ]; then
     exit 1
 fi
 
-# SSH connection details
 if [ "$1" = "1" ]; then
-    HOST="192.168.237.51"
+    #HOST="192.168.237.51"
+    HOST="192.168.88.251"
 else
-    HOST="192.168.237.52"
+    #HOST="192.168.237.52"
+    HOST="192.168.88.252"
 fi
 USER="raspi"
 

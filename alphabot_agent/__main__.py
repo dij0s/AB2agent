@@ -47,6 +47,7 @@ class AlphaBotAgent(Agent):
     async def notify_state_change(self):
         try:
             state_update = {
+                "agent_jid": self.jid[0],
                 "type": "state_update",
                 "state": self.state.value,
                 "timestamp": int(asyncio.get_event_loop().time()),
@@ -105,49 +106,33 @@ class AlphaBotAgent(Agent):
             command = command.split()[0]
 
             if command == "forward":
-                logger.info("[Behavior] Moving forward...")
-                self.ab.forward()
-                await asyncio.sleep(2)
-                self.ab.stop()
-
-            elif command == "forwardsafe":
                 distance = args[0]
-                distance = float(distance)
+                distance = int(distance)
                 logger.info(
-                    f"[Behavior] Moving forward safely for {distance} tiles"
+                    f"[Behavior] Moving forward safely for {distance} mm"
                 )
                 self.ab.safeForward(mm=distance)
 
             elif command == "turn":
-                angle, speed = args
-                angle = float(angle)
-                speed = float(speed)
+                angle = args[0]
+                angle = int(angle)
                 logger.info("[Behavior] Turning...")
-                self.ab.turn(angle=angle, speed=speed)
-
-            elif command == "backward":
-                logger.info("[Behavior] Moving backward...")
-                self.ab.backward()
-                await asyncio.sleep(2)
-                self.ab.stop()
-
-            elif command == "left":
-                logger.info("[Behavior] Turning left...")
-                self.ab.left()
-                await asyncio.sleep(2)
-                self.ab.stop()
-
-            elif command == "right":
-                logger.info("[Behavior] Turning right...")
-                self.ab.right()
-                await asyncio.sleep(2)
-                self.ab.stop()
+                self.ab.turn(angle=angle)
+            elif command == "full_calibration":
+                logger.info("Starting full calibration")
+                self.ab.fullCalibration()
+            elif command == "calibrate_turn":
+                logger.info("Calibrating turn...")
+                self.ab.calibrateTurn()
             elif command == "calibrate_sensors":
                 logger.info("[Behavior] Calibrating sensors...")
                 self.ab.calibrateTRSensors()
             elif command == "calibrate_forward":
                 logger.info("[Behavior] Calibrating forward...")
                 self.ab.calibrateForward()
+            elif command == "calibrate_forward_correction":
+                logger.info("Calibrating forward correction")
+                self.ab.calibrateForwardCorrection()
 
             elif command.startswith("motor "):
                 try:
