@@ -323,10 +323,10 @@ class AlphaBot2(object):
                     if n == self.DOWN:
                         return
                     if n == self.RIGHT:
-                        self.forwardCorrection -= 1
+                        self.forwardCorrection -= 0.2
                         pass
                     if n == self.LEFT:
-                        self.forwardCorrection += 1
+                        self.forwardCorrection += 0.2
                         pass
                     if n == self.CTR:
                         self.PA = self.forward_speed
@@ -375,7 +375,7 @@ class AlphaBot2(object):
             )
 
         self.PWMA.ChangeDutyCycle(self.forward_speed)
-        self.PWMB.ChangeDutyCycle(self.forward_speed)
+        self.PWMB.ChangeDutyCycle(self.forward_speed + self.forwardCorrection)
         GPIO.output(self.AIN1, GPIO.LOW)
         GPIO.output(self.AIN2, GPIO.HIGH)
         GPIO.output(self.BIN1, GPIO.LOW)
