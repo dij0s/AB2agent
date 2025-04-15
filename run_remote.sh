@@ -15,16 +15,17 @@ if [ "$1" != "1" ] && [ "$1" != "2" ]; then
 fi
 
 if [ "$1" = "1" ]; then
-    #HOST="192.168.237.51"
-    HOST="192.168.88.251"
+    HOST="192.168.237.51"
+    #HOST="192.168.88.251"
 else
-    #HOST="192.168.237.52"
-    HOST="192.168.88.252"
+    HOST="192.168.237.52"
+    #HOST="192.168.88.252"
 fi
 USER="raspi"
 
 # IP address of the Prosody server
 PROSODY_IP="192.168.237.165"
+#PROSODY_IP="192.168.88.236"
 
 # Local agent folder path
 LOCAL_AGENT_PATH="./agent"
